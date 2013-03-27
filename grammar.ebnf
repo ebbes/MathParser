@@ -1,0 +1,38 @@
+(* Grammar defining mathematical formulas to be evaluated by calculator *)
+
+sum			= product, { ( '+' | '-' ), product };
+				(* No left-recursion to make parsing (hopefully) easier *)
+
+product		= power, { ( '/' | '*' | '%' | '\\' ), power };
+				(* No left-recursion to make parsing (hopefully) easier *)
+
+power		= toplevel, [ '^' , power ];
+				(* powers are right-associative by recursion on the right side *)
+
+toplevel	= decimal | function | variable | variable, '=', base | '-', toplevel | '(', sum, ')';
+				(* Matches decimal, function variable, variable with assignment,
+				   negated toplevel or base in parentheses *)
+
+function	= variable, '()' | variable, '(', sum, { ',', sum }, ')';
+				(* support functions with arity of 0 up to infinity *)
+
+decimal		= ( digit | '.' ) { digit | '.' };
+				(* Will also match stuff like '.0.45', but this won't be in conflict with any
+				   other production and will be an evaluation error later on *)
+
+variable	= letter, { letter | digit };
+				(* variable and function variables. supports variables like atan2, but not 2atan *)
+
+letter		= 'A' | ... | 'Z' | 'a' | ... | 'z';
+
+digit		= '0' | ... | '9';
+
+(* Additional notes:
+   
+   Complex numbers have to be entered this way: 'real + i * imag' or equivalent math term, 'i' will
+   be interpreted as a variable (=> variable) and should therefore be bound to the correct value of i.
+   
+   Spaces should be ignored by lexer.
+   
+   Parser may simplify this grammar (e.g. by skipping productions and applying decimal directly,
+   without the need of travelling through sum, product, power, toplevel. *)
